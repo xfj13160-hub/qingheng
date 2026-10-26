@@ -1,0 +1,1 @@
+{"name":"轻衡","appid":"","description":"记录饮食、训练和身体趋势的本地健康工具","versionName":"0.1.0","versionCode":"100","transformPx":false,"vueVersion":"3","uniStatistics":{"enable":false},"h5":{"title":"轻衡","router":{"mode":"hash"}},"mp-weixin":{"appid":"","setting":{"urlCheck":true},"usingComponents":true},"app-plus":{"usingComponents":true}}

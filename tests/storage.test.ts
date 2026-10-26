@@ -1,0 +1,22 @@
+import { beforeEach,describe,it,expect,vi } from 'vitest'
+import { createPinia,setActivePinia } from 'pinia'
+import { blankSnapshot,createRepository,STORAGE_KEY,validSnapshot } from '../src/services/repository'
+import { useHealthStore } from '../src/stores/health'
+import type { MealEntry } from '../src/domain/types'
+let persisted:string|undefined
+const storage = { getStorageSync:vi.fn(()=>persisted||''),setStorageSync:vi.fn((_key:string,value:string)=>{persisted=value}),showToast:vi.fn(),showModal:vi.fn() }
+beforeEach(()=>{persisted=undefined;vi.clearAllMocks();storage.setStorageSync.mockImplementation((_key:string,value:string)=>{persisted=value});vi.stubGlobal('uni',storage);setActivePinia(createPinia())})
+const entry:MealEntry={id:'meal',date:'2026-10-25',meal:'lunch',foodId:'food-1',name:'米饭',grams:100,per100:{kcal:116,protein:2.6,carbs:25.9,fat:.3},art:'oats',photo:'saved-photo'}
+describe('存储仓库',()=>{
+  it('重建仓库后仍能读取已保存的记录',()=>{const r=createRepository({get:()=>persisted,set:(_k,v)=>{persisted=v}}),d=blankSnapshot();d.meals=[entry];r.write(d);expect(r.read()).toEqual(d);expect(STORAGE_KEY).toBe('qingheng:data:v1')})
+  it('损坏或未知版本不会被默认空数据覆盖',()=>{const raw='{corrupt';const set=vi.fn();const r=createRepository({get:()=>raw,set});expect(()=>r.read()).toThrow('原始数据已保留');expect(set).not.toHaveBeenCalled();const d=blankSnapshot();expect(validSnapshot({...d,version:2})).toBe(false);expect(validSnapshot({...d,meals:[{...entry,grams:-1}]})).toBe(false)})
+})
+describe('记录事务与跨页面数据源',()=>{
+  it('饮食表单显式取消常吃时移除收藏，未传入时保留',()=>{const store=useHealthStore();store.saveMeal(entry,undefined,true);store.saveMeal({...entry,grams:150});expect(store.data.favorites).toEqual([entry.foodId]);store.saveMeal({...entry,grams:200},undefined,false);expect(store.data.favorites).toEqual([]);expect(store.data.meals[0].grams).toBe(200)})
+  it('增改删、持久化重载与日期隔离',()=>{const store=useHealthStore();store.hydrate();expect(store.saveMeal(entry)).toBe(true);store.saveMeal({...entry,grams:200});expect(store.data.meals).toHaveLength(1);expect(store.data.meals[0].grams).toBe(200);expect(store.copyYesterday('2026-10-26')).toBe(true);expect(store.data.meals.filter(x=>x.date==='2026-10-26')).toHaveLength(1);expect(store.data.meals[1].photo).toBeUndefined();setActivePinia(createPinia());const reloaded=useHealthStore();reloaded.hydrate();expect(reloaded.data.meals).toHaveLength(2);expect(reloaded.deleteMeal('meal')).toBe(true);expect(reloaded.data.meals).toHaveLength(1)})
+  it('设备写入失败时不丢失已有记录或提交未保存状态',()=>{const store=useHealthStore();store.saveMeal(entry);const old=persisted;storage.setStorageSync.mockImplementationOnce(()=>{throw new Error('quota')});expect(store.saveMeal({...entry,grams:300})).toBe(false);expect(store.data.meals[0].grams).toBe(100);expect(persisted).toBe(old);expect(storage.showModal).toHaveBeenCalled()})
+  it('读取损坏数据后阻止后续写入',()=>{persisted='{bad';const store=useHealthStore();store.hydrate();expect(store.storageIssue).toBeTruthy();expect(store.saveMeal(entry)).toBe(false);expect(persisted).toBe('{bad');expect(storage.setStorageSync).not.toHaveBeenCalled()})
+  it('同日身体记录唯一，修改记录日期会移除原日期，删除后同步',()=>{const store=useHealthStore();store.saveBody({id:'b1',date:'2026-10-25',weight:72});store.saveBody({id:'b2',date:'2026-10-25',weight:73});expect(store.data.bodies).toHaveLength(1);store.saveBody({id:'b2',date:'2026-10-26',waist:82});expect(store.data.bodies).toEqual([{id:'b2',date:'2026-10-26',waist:82}]);store.deleteBody('b2');expect(store.data.bodies).toEqual([])})
+  it('训练编辑保留一条记录，删除后不再计入',()=>{const store=useHealthStore();const t={id:'t1',date:'2026-10-26',type:'跑步',minutes:30,feeling:'状态不错',note:''};store.saveTraining(t);store.saveTraining({...t,minutes:45});expect(store.data.training).toHaveLength(1);expect(store.data.training[0].minutes).toBe(45);store.deleteTraining(t.id);expect(store.data.training).toHaveLength(0)})
+  it('自定义食物与常吃跨重载保存，历史份量不受食物编辑影响',()=>{const store=useHealthStore();const food={id:'custom1',name:'自制餐',state:'熟',category:'自定义',art:'salad',kcal:200,protein:20,carbs:20,fat:4,custom:true};store.saveMeal({...entry,foodId:food.id,per100:{kcal:200,protein:20,carbs:20,fat:4}},food,true);expect(store.data.favorites).toEqual(['custom1']);store.saveMeal({...entry,id:'meal2',foodId:food.id}, {...food,kcal:250});expect(store.data.customFoods).toHaveLength(1);expect(store.data.customFoods[0].kcal).toBe(250);expect(store.data.meals[0].per100.kcal).toBe(200);store.toggleFavorite(food.id);expect(store.data.favorites).toEqual([]);expect(store.data.meals).toHaveLength(2)})
+})
