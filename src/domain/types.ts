@@ -1,3 +1,4 @@
+import type { SavedPlanner } from './mealPlan'
 export type Meal = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 export type Metric = 'weight' | 'waist' | 'bodyFat'
 export interface Nutrition { kcal: number; protein: number; carbs: number; fat: number }
@@ -6,7 +7,7 @@ export interface MealEntry { id: string; date: string; meal: Meal; foodId: strin
 export interface BodyEntry { id: string; date: string; weight?: number; waist?: number; bodyFat?: number }
 export interface TrainingEntry { id: string; date: string; type: string; minutes: number; feeling: string; note: string }
 export interface Profile { name: string; goal: string; height?: number; targetWeight?: number; targets: Partial<Nutrition> }
-export interface Snapshot { version: 1; onboarded: boolean; profile: Profile; meals: MealEntry[]; bodies: BodyEntry[]; training: TrainingEntry[]; customFoods: Food[]; favorites: string[] }
+export interface Snapshot { version: 1; onboarded: boolean; profile: Profile; meals: MealEntry[]; bodies: BodyEntry[]; training: TrainingEntry[]; customFoods: Food[]; favorites: string[]; planner?: SavedPlanner }
 export const mealNames: Record<Meal, string> = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐', snack: '加餐' }
 export const mealKeys: Meal[] = ['breakfast', 'lunch', 'dinner', 'snack']
 export const metricNames: Record<Metric, string> = { weight: '体重', waist: '腰围', bodyFat: '体脂' }
