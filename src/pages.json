@@ -11,7 +11,8 @@
     {"path":"pages/body-entry/index","style":{"navigationBarTitleText":"记录身体"}},
     {"path":"pages/training-entry/index","style":{"navigationBarTitleText":"记录训练"}},
     {"path":"pages/weekly/index","style":{"navigationBarTitleText":"每周回顾"}},
-    {"path":"pages/favorites/index","style":{"navigationBarTitleText":"常吃食物"}}
+    {"path":"pages/favorites/index","style":{"navigationBarTitleText":"常吃食物"}},
+    {"path":"pages/meal-plan/index","style":{"navigationBarTitleText":"每日饮食计划"}}
   ],
   "globalStyle":{"navigationStyle":"custom","backgroundColor":"#f7f7f2","navigationBarTextStyle":"white","navigationBarBackgroundColor":"#173e2b","app-plus":{"bounce":"none"}}
 }
