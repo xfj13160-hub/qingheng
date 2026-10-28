@@ -1,5 +1,6 @@
 import type { Snapshot } from '../domain/types'
 import { isDate } from '../domain/dates'
+import { validSavedPlanner } from '../domain/mealPlan'
 export const STORAGE_KEY = 'qingheng:data:v1'
 export function blankSnapshot(): Snapshot { return { version: 1, onboarded: false, profile: { name: '', goal: '减脂保肌', targets: {} }, meals: [], bodies: [], training: [], customFoods: [], favorites: [] } }
 const finite = (n: unknown, min = 0, max = 1e6): n is number => typeof n === 'number' && Number.isFinite(n) && n >= min && n <= max
@@ -16,6 +17,7 @@ export function validSnapshot(d: any): d is Snapshot {
       && Array.isArray(d.training) && d.training.every((x: any) => text(x.id) && isDate(x.date) && text(x.type) && finite(x.minutes,1,1440) && text(x.feeling) && text(x.note))
       && Array.isArray(d.customFoods) && d.customFoods.every((x: any) => text(x.id) && text(x.name) && text(x.state) && text(x.category) && text(x.art) && nutrient(x))
       && Array.isArray(d.favorites) && d.favorites.every(text)
+      && (d.planner === undefined || validSavedPlanner(d.planner))
   } catch { return false }
 }
 export interface StorageAdapter { get(key: string): unknown; set(key: string, value: string): void }
